@@ -16,3 +16,6 @@ __pycache__/
 
 # OS files
 .DS_Store
+
+#My_config
+my_config.txt
