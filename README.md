@@ -1,27 +1,46 @@
-# Telemetry Collection and Aggregation System
+# 📡 Distributed Telemetry Monitoring System
 
 ## 📌 Overview
-This project is a simple telemetry system that collects system metrics (CPU, memory, disk) from machines, aggregates the data, stores it, and visualizes it in real time.
+This project is a **multi-system telemetry monitoring platform** that collects system metrics (CPU, memory, disk) from multiple machines over a network, aggregates them, stores them, and visualizes them in real-time through a web dashboard.
+
+It simulates a lightweight **observability pipeline**, similar to tools like Prometheus or Datadog.
 
 ---
 
-## ⚙️ Features
-- Real-time system monitoring using agents  
-- Data aggregation and processing  
-- REST API for data storage and retrieval  
-- Visualization dashboard using Streamlit  
+## 🚀 Features
+
+- 🔄 Real-time system monitoring  
+- 🌐 Multi-machine support over network (WiFi / hotspot)  
+- 🧠 Per-system data aggregation  
+- 📊 Interactive dashboard with system selection  
+- 📈 Live charts for CPU, Memory, and Disk usage  
+- 🟢 System status detection (Online / Offline)  
+- ⚙️ Centralized configuration  
+- 🪵 Structured logging  
 
 ---
 
-## 🧱 Project Structure
+## 🧱 Architecture
+
+```
+Agents (multiple systems)
+        ↓
+   Server (Aggregation + Storage)
+        ↓
+   Dashboard (Visualization)
+```
+
+---
+
+## 📁 Project Structure
+
 ```
 telemetry_system/
 │
-├── agent/          # Collects system data
-├── aggregator/     # Processes and aggregates data
-├── server/         # Stores data and provides APIs
-├── dashboard/      # Visualization (Streamlit)
-├── common/         # Config and logging
+├── agent/            # Collects system metrics
+├── server/           # Aggregates + stores data
+├── dashboard/        # Streamlit UI
+├── common/           # Config + logging
 │
 ├── requirements.txt
 └── README.md
@@ -29,81 +48,96 @@ telemetry_system/
 
 ---
 
-## 📦 Installation
+## ⚙️ Installation
 
-1. Create virtual environment (optional but recommended):
+1. Clone the repository:
+```
+git clone <your-repo-url>
+cd telemetry_system
+```
+
+2. Create virtual environment (recommended):
 ```
 python -m venv venv
 venv\Scripts\activate   # Windows
 ```
 
-2. Install dependencies:
+3. Install dependencies:
 ```
 pip install -r requirements.txt
 ```
 
 ---
 
-## 🚀 How to Run
+## 🌐 Configuration
 
-Open **4 terminals** and run the following in order:
+Edit:
+```
+common/config.py
+```
+
+Update your server IP:
+
+```python
+SERVER_URL = "http://<YOUR_SERVER_IP>:8000"
+```
+
+To find your IP:
+```
+ipconfig   # Windows
+ifconfig   # Linux/Mac
+```
+
+---
+
+## ▶️ How to Run
 
 ### 1️⃣ Start Server
 ```
 python -m server.server
 ```
 
-### 2️⃣ Start Aggregator
+### 2️⃣ Start Dashboard
 ```
-python -m aggregator.aggregator
-```
-
-### 3️⃣ Start Agent
-```
-python -m agent.agent
+python -m streamlit run dashboard/app.py
 ```
 
-### 4️⃣ Start Dashboard
-```
-streamlit run dashboard/app.py
-```
-
----
-
-## 🌐 Access Dashboard
 Open in browser:
 ```
 http://localhost:8501
 ```
 
+### 3️⃣ Start Agents (on multiple machines)
+```
+python -m agent.agent
+```
+
+---
+
+## 📊 Dashboard Features
+
+- View number of connected systems  
+- Select individual system  
+- Monitor CPU, memory, disk usage  
+- Real-time updating graphs  
+- System status (Online / Offline)  
+- Overview table for all systems  
+
 ---
 
 ## 🔌 API Endpoints
 
-- Get metrics:
-```
-http://localhost:8000/metrics
-```
-
-- Get analysis:
-```
-http://localhost:8000/analysis
-```
-
----
-
-## 🧠 System Flow
-Agent → Aggregator → Server → Dashboard
+| Endpoint | Method | Description |
+|---------|--------|------------|
+| `/collect` | POST | Receive raw metrics from agents |
+| `/metrics` | GET | Get stored aggregated metrics |
+| `/analysis` | GET | Get overall statistics |
 
 ---
 
 ## ⚠️ Notes
-- Make sure all services are running simultaneously  
-- Run commands from the project root directory  
-- If issues occur, restart all services  
 
----
-
-## 📊 Output
-- Real-time CPU, memory, and disk usage graphs  
-- Aggregated statistics (average, max values)  
+- Ensure all devices are on the same network  
+- Make sure firewall allows port **8000**  
+- Delete `telemetry.db` if schema changes  
+- Run commands from project root directory  
