@@ -1,2 +1,17 @@
+# Virtual environments
 venv/
-telemetry.db
+.venv/
+.env/
+
+# Python cache
+__pycache__/
+*.py[cod]
+
+# Database files
+*.db
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
