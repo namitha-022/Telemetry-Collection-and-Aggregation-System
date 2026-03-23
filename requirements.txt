@@ -2,3 +2,5 @@ psutil
 requests
 flask
 streamlit
+pandas
+streamlit-autorefresh

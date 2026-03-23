@@ -7,6 +7,7 @@ cursor = conn.cursor()
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS metrics (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    system_id TEXT,
     avg_cpu REAL,
     avg_memory REAL,
     avg_disk REAL,
