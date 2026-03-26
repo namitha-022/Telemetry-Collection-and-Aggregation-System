@@ -1,4 +1,4 @@
-# 📡 Distributed Telemetry Monitoring System
+#  Distributed Telemetry Monitoring System
 
 ## 📌 Overview
 This project is a **multi-system telemetry monitoring platform** that collects system metrics (CPU, memory, disk) from multiple machines over a network, aggregates them, stores them, and visualizes them in real-time through a web dashboard.
@@ -9,14 +9,14 @@ It simulates a lightweight **observability pipeline**, similar to tools like Pro
 
 ## 🚀 Features
 
-- 🔄 Real-time system monitoring  
-- 🌐 Multi-machine support over network (WiFi / hotspot)  
-- 🧠 Per-system data aggregation  
-- 📊 Interactive dashboard with system selection  
-- 📈 Live charts for CPU, Memory, and Disk usage  
-- 🟢 System status detection (Online / Offline)  
-- ⚙️ Centralized configuration  
-- 🪵 Structured logging  
+-  Real-time system monitoring  
+-  Multi-machine support over network (WiFi / hotspot)  
+-  Per-system data aggregation  
+-  Interactive dashboard with system selection  
+-  Live charts for CPU, Memory, and Disk usage  
+-  System status detection (Online / Offline)  
+-  Centralized configuration  
+-  Structured logging  
 
 ---
 
