@@ -1,9 +1,9 @@
 import streamlit as st
-import requests
 import pandas as pd
 import time
 from streamlit_autorefresh import st_autorefresh
-from common.config import SERVER_URL
+from server.models import get_all_metrics
+from server.metrics import get_stats
 
 # ─────────────────────────────────────────────
 # Page Config
@@ -13,7 +13,7 @@ st.set_page_config(
     layout="wide"
 )
 
-st.title("📡 Telemetry Monitoring Dashboard")
+st.title("Telemetry Monitoring Dashboard")
 st.caption("Real-time system telemetry, network health, and performance insights")
 
 st_autorefresh(interval=2000)
@@ -37,18 +37,25 @@ def get_system_status(last_timestamp):
 # Data Fetch
 # ─────────────────────────────────────────────
 try:
-    metrics = requests.get(f"{SERVER_URL}/metrics", timeout=2).json()
-    analysis = requests.get(f"{SERVER_URL}/analysis", timeout=2).json()
-    stats = requests.get(f"{SERVER_URL}/stats", timeout=2).json()
+    metrics = get_all_metrics()
+    stats = get_stats()
 
     if not metrics:
-        st.warning("⚠️ No telemetry data available")
+        st.warning("No telemetry data available")
         st.stop()
 
     df = pd.DataFrame(metrics)
 
+    # Calculate analysis
+    avg_cpu = sum(d["avg_cpu"] for d in metrics) / len(metrics)
+    max_cpu = max(d["avg_cpu"] for d in metrics)
+    analysis = {
+        "overall_avg_cpu": avg_cpu,
+        "max_cpu": max_cpu
+    }
+
     # ─────────────────────────────────────────────
-    # 🔷 TOP KPIs
+    # TOP KPIs
     # ─────────────────────────────────────────────
     st.markdown("## 📊 System Overview")
 
@@ -56,29 +63,30 @@ try:
 
     col1, col2, col3, col4 = st.columns(4)
 
-    col1.metric("🖥️ Active Systems", systems)
-    col2.metric("⚡ Avg CPU", f"{analysis.get('overall_avg_cpu', 0):.2f}%")
-    col3.metric("🔥 Max CPU", f"{analysis.get('max_cpu', 0):.2f}%")
-    col4.metric("📦 Total Records", len(df))
+    col1.metric("Active Systems", systems)
+    col2.metric("Avg CPU", f"{analysis.get('overall_avg_cpu', 0):.2f}%")
+    col3.metric("Max CPU", f"{analysis.get('max_cpu', 0):.2f}%")
+    col4.metric("Total Records", len(df))
 
     st.markdown("---")
 
     # ─────────────────────────────────────────────
-    # 📡 NETWORK METRICS
+    # NETWORK METRICS
     # ─────────────────────────────────────────────
-    st.markdown("## 📡 Network Health")
+    st.markdown("## Network Health")
 
     total_received = stats.get("total_received", 0)
     throughput = stats.get("throughput", 0)
     packet_loss = stats.get("packet_loss", {})
+    packet_loss_percent = stats.get("packet_loss_percent", 0)
 
     loss_total = sum(packet_loss.values())
 
     c1, c2, c3 = st.columns(3)
 
-    c1.metric("📥 Packets Received", f"{total_received:,}")
-    c2.metric("🚀 Throughput", f"{throughput:.2f} pkt/s")
-    c3.metric("⚠️ Packet Loss", loss_total)
+    c1.metric("Packets Received", f"{total_received:,}")
+    c2.metric("Throughput", f"{throughput:.2f} pkt/s")
+    c3.metric("Packet Loss", f"{packet_loss_percent:.2f}%")
 
     # Loss breakdown
     if packet_loss:
@@ -96,7 +104,7 @@ try:
     # ─────────────────────────────────────────────
     # 🖥️ SYSTEM TABLE
     # ─────────────────────────────────────────────
-    st.markdown("## 🖥️ Systems Status")
+    st.markdown("## Systems Status")
 
     latest_all = (
         df.sort_values("timestamp")
@@ -125,7 +133,7 @@ try:
     # ─────────────────────────────────────────────
     # 🔍 SYSTEM DETAILS
     # ─────────────────────────────────────────────
-    st.markdown("## 🔍 System Details")
+    st.markdown("## System Details")
 
     selected_system = st.selectbox(
         "Select a system",
@@ -149,11 +157,14 @@ try:
     m2.metric("Memory Usage", f"{latest['avg_memory']:.1f}%", mem_status)
     m3.metric("Disk Usage", f"{latest['avg_disk']:.1f}%", disk_status)
 
-    st.markdown("### 📈 Trends")
+    st.markdown("### Trends")
 
-    st.line_chart(system_df.set_index("timestamp")[["avg_cpu"]])
-    st.line_chart(system_df.set_index("timestamp")[["avg_memory"]])
-    st.line_chart(system_df.set_index("timestamp")[["avg_disk"]])
+    if len(system_df) > 1:
+        st.line_chart(system_df.set_index("timestamp")[["avg_cpu"]])
+        st.line_chart(system_df.set_index("timestamp")[["avg_memory"]])
+        st.line_chart(system_df.set_index("timestamp")[["avg_disk"]])
+    else:
+        st.info("📊 Need more data points to show trends")
 
 except Exception as e:
-    st.error(f"❌ Unable to connect to server: {e}")
+    st.error(f"❌ Unable to fetch data: {e}")
