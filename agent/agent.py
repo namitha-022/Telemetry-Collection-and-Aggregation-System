@@ -6,13 +6,14 @@ from common.config import SERVER_HOST, SERVER_PORT
 from common.logger import logger
 
 SYSTEM_ID = socket.gethostname()
-
-# Create UDP socket
 sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+seq = 0  # NEW
 
 while True:
     data = {
         "system_id": SYSTEM_ID,
+        "seq": seq,  # NEW
         "cpu": psutil.cpu_percent(),
         "memory": psutil.virtual_memory().percent,
         "disk": psutil.disk_usage('/').percent,
@@ -20,11 +21,11 @@ while True:
     }
 
     try:
-        # Send data via UDP
         message = json.dumps(data).encode('utf-8')
         sock.sendto(message, (SERVER_HOST, SERVER_PORT))
-        logger.info(f"[{SYSTEM_ID}] Sent data via UDP: {data}")
+        logger.info(f"[{SYSTEM_ID}] Sent seq={seq}")
+        seq += 1
     except Exception as e:
-        logger.error(f"[{SYSTEM_ID}] Failed to send data: {e}")
+        logger.error(f"[{SYSTEM_ID}] Failed: {e}")
 
     time.sleep(2)
