@@ -1,143 +1,273 @@
-#  Distributed Telemetry Monitoring System
+# 📡 Telemetry Collection and Aggregation System
 
-## 📌 Overview
-This project is a **multi-system telemetry monitoring platform** that collects system metrics (CPU, memory, disk) from multiple machines over a network, aggregates them, stores them, and visualizes them in real-time through a web dashboard.
-
-It simulates a lightweight **observability pipeline**, similar to tools like Prometheus or Datadog.
+A distributed telemetry system where multiple clients (agents) continuously send system metrics to a centralized server using UDP. The system performs real-time aggregation, packet loss tracking, and performance monitoring.
 
 ---
 
 ## 🚀 Features
 
--  Real-time system monitoring  
--  Multi-machine support over network (WiFi / hotspot)  
--  Per-system data aggregation  
--  Interactive dashboard with system selection  
--  Live charts for CPU, Memory, and Disk usage  
--  System status detection (Online / Offline)  
--  Centralized configuration  
--  Structured logging  
+### ✅ Core Capabilities
+
+*  **UDP-based Telemetry Ingestion** (high-throughput, low overhead)
+*  **Per-system Aggregation** (CPU, memory, disk)
+*  **Sequence Tracking** for each client
+*  **Packet Loss Detection**
+*  **Persistent Storage** using SQLite
+*  **Live Dashboard** (Streamlit)
 
 ---
 
-## 🧱 Architecture
+### ⚡ Performance & Scalability
+
+* Multi-threaded ingestion pipeline
+* Queue-based processing (decoupled ingestion & computation)
+* Batch database writes (optimized performance)
+* Configurable worker threads
+
+---
+
+## 🏗️ Architecture
 
 ```
-Agents (multiple systems)
-        ↓
-   Server (Aggregation + Storage)
-        ↓
-   Dashboard (Visualization)
+[Agent]
+   ↓ UDP
+[Receiver Thread]
+   ↓
+[Queue]
+   ↓
+[Worker Threads]
+   ↓
+[Aggregation Buffer]
+   ↓
+[Database (SQLite)]
+   ↓
+[Dashboard (Streamlit)]
 ```
 
 ---
 
-## 📁 Project Structure
+## 📂 Project Structure
 
 ```
-telemetry_system/
-│
-├── agent/            # Collects system metrics
-├── server/           # Aggregates + stores data
-├── dashboard/        # Streamlit UI
-├── common/           # Config + logging
-│
-├── requirements.txt
-└── README.md
+agent/
+  └── agent.py          # Sends telemetry data
+
+common/
+  ├── config.py         # Configuration
+  └── logger.py         # Logging setup
+
+server/
+  ├── server.py         # UDP server + processing
+  ├── database.py       # DB connection
+  ├── models.py         # DB operations
+  └── metrics.py        # Packet loss tracking
+
+dashboard/
+  └── app.py            # Streamlit dashboard
+
+requirements.txt
+README.md
 ```
 
 ---
 
-## ⚙️ Installation
+## 📦 Installation
 
-1. Clone the repository:
-```
+### 1. Clone repository
+
+```bash
 git clone <your-repo-url>
-cd telemetry_system
+cd telemetry-system
 ```
 
-2. Create virtual environment (recommended):
-```
+### 2. Create virtual environment
+
+```bash
 python -m venv venv
-venv\Scripts\activate   # Windows
+source venv/bin/activate   # Linux/Mac
+venv\Scripts\activate      # Windows
 ```
 
-3. Install dependencies:
-```
+### 3. Install dependencies
+
+```bash
 pip install -r requirements.txt
 ```
 
 ---
 
-## 🌐 Configuration
+## ▶️ Running the System
 
-Edit:
-```
-common/config.py
+### 1. Start the server
+
+```bash
+python server/server.py
 ```
 
-Update your server IP:
+---
+
+### 2. Start agent(s)
+
+Run one or multiple agents (simulate distributed systems):
+
+```bash
+python agent/agent.py
+```
+
+---
+
+### 3. Start dashboard
+
+```bash
+streamlit run dashboard/app.py
+```
+
+---
+
+## 📊 Data Flow
+
+Each agent sends:
+
+```json
+{
+  "system_id": "host123",
+  "seq": 10,
+  "cpu": 45.5,
+  "memory": 60.2,
+  "disk": 70.1,
+  "timestamp": 1710000000
+}
+```
+
+---
+
+## 🔍 Key Concepts
+
+### 🔢 Sequence Tracking
+
+Each packet includes a sequence number:
+
+* Detects missing packets
+* Enables packet loss calculation
+
+---
+
+### ⚠️ Packet Loss Detection
+
+Server tracks:
+
+```
+expected_seq vs received_seq
+```
+
+If mismatch:
+
+```
+loss = received - expected
+```
+
+---
+
+### 📊 Aggregation
+
+Data is buffered per system and aggregated after:
+
+```
+AGGREGATION_BATCH_SIZE (default = 5)
+```
+
+Metrics stored:
+
+* avg_cpu
+* avg_memory
+* avg_disk
+
+---
+
+### ⚡ High-Rate Processing
+
+* UDP ingestion (non-blocking)
+* Queue-based buffering
+* Worker thread pool
+
+---
+
+## ⚙️ Configuration
+
+Modify in `common/config.py`:
 
 ```python
-SERVER_URL = "http://<YOUR_SERVER_IP>:8000"
-```
-
-To find your IP:
-```
-ipconfig   # Windows
-ifconfig   # Linux/Mac
-```
-
----
-
-## ▶️ How to Run
-
-### 1️⃣ Start Server
-```
-python -m server.server
-```
-
-### 2️⃣ Start Dashboard
-```
-python -m streamlit run dashboard/app.py
-```
-
-Open in browser:
-```
-http://localhost:8501
-```
-
-### 3️⃣ Start Agents (on multiple machines)
-```
-python -m agent.agent
+SERVER_PORT = 8000
+AGGREGATION_BATCH_SIZE = 5
+WORKER_THREADS = 4
+MAX_QUEUE_SIZE = 10000
+MAX_BUFFER_SIZE = 1000
 ```
 
 ---
 
-## 📊 Dashboard Features
+## 📈 Performance Metrics
 
-- View number of connected systems  
-- Select individual system  
-- Monitor CPU, memory, disk usage  
-- Real-time updating graphs  
-- System status (Online / Offline)  
-- Overview table for all systems  
+The system tracks:
 
----
-
-## 🔌 API Endpoints
-
-| Endpoint | Method | Description |
-|---------|--------|------------|
-| `/collect` | POST | Receive raw metrics from agents |
-| `/metrics` | GET | Get stored aggregated metrics |
-| `/analysis` | GET | Get overall statistics |
+* Total packets received
+* Packet loss per system
+* Aggregation events
 
 ---
 
-## ⚠️ Notes
+## ⚠️ Limitations
 
-- Ensure all devices are on the same network  
-- Make sure firewall allows port **8000**  
-- Delete `telemetry.db` if schema changes  
-- Run commands from project root directory  
+* UDP is unreliable (intentional for this system)
+* SQLite is not ideal for high-scale production
+* No authentication or encryption
+
+---
+
+## 🚀 Future Improvements
+
+* Replace SQLite with PostgreSQL
+* Add FastAPI REST endpoints
+* Implement authentication
+* Add compression (zlib)
+* Use asyncio for higher throughput
+* Deploy with Docker
+
+---
+
+## 🎯 Use Cases
+
+* Distributed system monitoring
+* Performance testing environments
+* Network telemetry pipelines
+* Observability system prototypes
+
+---
+
+## 👨‍💻 Tech Stack
+
+* Python
+* UDP Sockets
+* SQLite
+* Streamlit
+* Multithreading
+
+---
+
+## 🧾 Summary
+
+This project demonstrates a **real-world telemetry pipeline** with:
+
+* High-throughput ingestion
+* Loss detection
+* Aggregation logic
+* Scalable architecture patterns
+
+---
+
+## 📬 Author
+
+Your Name
+(Replace with your details)
+
+---
