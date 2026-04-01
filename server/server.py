@@ -1,23 +1,21 @@
-from flask import Flask, request, jsonify
 from server.models import insert_metric, get_all_metrics
 from common.config import SERVER_HOST, SERVER_PORT, AGGREGATION_BATCH_SIZE
 from common.logger import logger
+import socket
+import json
 import time
 from threading import Lock
-
-app = Flask(__name__)
 
 buffers = {}
 lock = Lock()
 
 
-@app.route('/collect', methods=['POST'])
-def collect():
-    data = request.json
-
+def process_data(data):
+    """Process incoming telemetry data"""
     required = ["system_id", "cpu", "memory", "disk", "timestamp"]
-    if not data or not all(k in data for k in required):
-        return jsonify({"error": "invalid payload"}), 400
+    if not all(k in data for k in required):
+        logger.error("Invalid payload received")
+        return
 
     system_id = data["system_id"]
 
@@ -48,35 +46,22 @@ def collect():
 
             logger.info(f"Aggregated + stored data for {system_id}")
 
-    return jsonify({"status": "received"})
 
+def start_udp_server():
+    """Start UDP server to listen for telemetry data"""
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.bind((SERVER_HOST, SERVER_PORT))
+    logger.info(f"UDP Server listening on {SERVER_HOST}:{SERVER_PORT}")
 
-@app.route('/metrics', methods=['GET'])
-def metrics():
-    return jsonify(get_all_metrics())
-
-
-@app.route('/analysis', methods=['GET'])
-def analysis():
-    data_store = get_all_metrics()
-
-    if not data_store:
-        return jsonify({
-            "systems": 0,
-            "overall_avg_cpu": 0,
-            "max_cpu": 0
-        })
-
-    avg_cpu = sum(d['avg_cpu'] for d in data_store) / len(data_store)
-    max_cpu = max(d['avg_cpu'] for d in data_store)
-    systems = len(set(d["system_id"] for d in data_store))
-
-    return jsonify({
-        "systems": systems,
-        "overall_avg_cpu": avg_cpu,
-        "max_cpu": max_cpu
-    })
+    while True:
+        try:
+            data, addr = sock.recvfrom(4096)
+            message = json.loads(data.decode('utf-8'))
+            logger.info(f"Received UDP packet from {addr}")
+            process_data(message)
+        except Exception as e:
+            logger.error(f"Error processing UDP packet: {e}")
 
 
 if __name__ == '__main__':
-    app.run(host=SERVER_HOST, port=SERVER_PORT)
+    start_udp_server()
