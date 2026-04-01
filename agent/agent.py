@@ -1,12 +1,14 @@
 import psutil
-import requests
 import time
 import socket
-from common.config import SERVER_URL
+import json
+from common.config import SERVER_HOST, SERVER_PORT
 from common.logger import logger
 
-COLLECT_URL = f"{SERVER_URL}/collect"
 SYSTEM_ID = socket.gethostname()
+
+# Create UDP socket
+sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
 while True:
     data = {
@@ -18,8 +20,10 @@ while True:
     }
 
     try:
-        requests.post(COLLECT_URL, json=data, timeout=2)
-        logger.info(f"[{SYSTEM_ID}] Sent data: {data}")
+        # Send data via UDP
+        message = json.dumps(data).encode('utf-8')
+        sock.sendto(message, (SERVER_HOST, SERVER_PORT))
+        logger.info(f"[{SYSTEM_ID}] Sent data via UDP: {data}")
     except Exception as e:
         logger.error(f"[{SYSTEM_ID}] Failed to send data: {e}")
 
