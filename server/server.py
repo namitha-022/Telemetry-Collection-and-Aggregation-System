@@ -1,5 +1,5 @@
 from server.models import insert_metric
-from server.metrics import update_sequence, get_stats
+from server.metrics import update_sequence
 from common.config import (
     SERVER_HOST, SERVER_PORT,
     AGGREGATION_BATCH_SIZE,
@@ -15,7 +15,6 @@ from queue import Queue
 
 buffers = {}
 lock = Lock()
-
 queue = Queue(maxsize=MAX_QUEUE_SIZE)
 
 
@@ -27,7 +26,6 @@ def process_data(data):
     system_id = data["system_id"]
     seq = data["seq"]
 
-    # Track packet loss
     update_sequence(system_id, seq)
 
     with lock:
@@ -36,7 +34,6 @@ def process_data(data):
 
         buffers[system_id].append(data)
 
-        # Prevent memory explosion
         if len(buffers[system_id]) > MAX_BUFFER_SIZE:
             buffers[system_id] = buffers[system_id][-MAX_BUFFER_SIZE:]
 
@@ -84,20 +81,12 @@ def start_udp_server():
     sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     sock.bind((SERVER_HOST, SERVER_PORT))
 
-    logger.info(f"UDP Server on {SERVER_HOST}:{SERVER_PORT}")
+    logger.info(f"UDP Server running on {SERVER_HOST}:{SERVER_PORT}")
 
-    # Start receiver
     Thread(target=receiver, args=(sock,), daemon=True).start()
 
-    # Start workers
     for _ in range(WORKER_THREADS):
         Thread(target=worker, daemon=True).start()
 
     while True:
-        time.sleep(5)
-        stats = get_stats()
-        logger.info(f"Stats: {stats}")
-
-
-if __name__ == '__main__':
-    start_udp_server()
+        time.sleep(10)

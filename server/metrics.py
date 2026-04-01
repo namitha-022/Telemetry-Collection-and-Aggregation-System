@@ -1,8 +1,11 @@
 from collections import defaultdict
+import time
 
 last_seq = {}
 packet_loss = defaultdict(int)
 total_received = 0
+start_time = time.time()
+
 
 def update_sequence(system_id, seq):
     global total_received
@@ -18,7 +21,10 @@ def update_sequence(system_id, seq):
 
 
 def get_stats():
+    elapsed = time.time() - start_time
+
     return {
         "total_received": total_received,
+        "throughput": total_received / elapsed if elapsed > 0 else 0,
         "packet_loss": dict(packet_loss)
     }
