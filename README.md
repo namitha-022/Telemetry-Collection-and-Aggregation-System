@@ -98,20 +98,20 @@ pip install -r requirements.txt
 
 ## ▶️ Running the System
 
-### 1. Start the server
-
-```bash
-python server/server.py
-```
-
----
-
-### 2. Start agent(s)
+### 1. Start agent(s)
 
 Run one or multiple agents (simulate distributed systems):
 
 ```bash
 python agent/agent.py
+```
+
+---
+
+### 2. Start the server
+
+```bash
+python server/server.py
 ```
 
 ---
@@ -224,17 +224,6 @@ The system tracks:
 
 ---
 
-## 🚀 Future Improvements
-
-* Replace SQLite with PostgreSQL
-* Add FastAPI REST endpoints
-* Implement authentication
-* Add compression (zlib)
-* Use asyncio for higher throughput
-* Deploy with Docker
-
----
-
 ## 🎯 Use Cases
 
 * Distributed system monitoring
@@ -254,20 +243,3 @@ The system tracks:
 
 ---
 
-## 🧾 Summary
-
-This project demonstrates a **real-world telemetry pipeline** with:
-
-* High-throughput ingestion
-* Loss detection
-* Aggregation logic
-* Scalable architecture patterns
-
----
-
-## 📬 Author
-
-Your Name
-(Replace with your details)
-
----
