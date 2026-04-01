@@ -58,6 +58,7 @@ common/
 
 server/
   ├── server.py         # UDP server + processing
+  ├── api.py            # FastAPI endpoints
   ├── database.py       # DB connection
   ├── models.py         # DB operations
   └── metrics.py        # Packet loss tracking
@@ -98,7 +99,17 @@ pip install -r requirements.txt
 
 ## ▶️ Running the System
 
-### 1. Start agent(s)
+### 1. Start the server
+
+```bash
+python server/server.py
+```
+
+The server will start on UDP port 8000 and listen for telemetry data from agents.
+
+---
+
+### 2. Start agent(s)
 
 Run one or multiple agents (simulate distributed systems):
 
@@ -106,21 +117,27 @@ Run one or multiple agents (simulate distributed systems):
 python agent/agent.py
 ```
 
+Each agent will send telemetry data every 2 seconds via UDP to the server.
+
 ---
 
-### 2. Start the server
+### 3. Start the API server (optional)
+
+The API server provides REST endpoints for the dashboard:
 
 ```bash
-python server/server.py
+uvicorn server.api:app --host 0.0.0.0 --port 8001
 ```
 
 ---
 
-### 3. Start dashboard
+### 4. Start dashboard
 
 ```bash
 streamlit run dashboard/app.py
 ```
+
+The dashboard will be available at http://localhost:8501
 
 ---
 
@@ -194,10 +211,16 @@ Metrics stored:
 
 ## ⚙️ Configuration
 
-Modify in `common/config.py`:
+Modify in [`common/config.py`](common/config.py:1):
 
 ```python
+SERVER_HOST = "0.0.0.0"
 SERVER_PORT = 8000
+PROTOCOL = "udp"
+SERVER_URL = "http://localhost:8000"
+
+DB_FILE = "telemetry.db"
+
 AGGREGATION_BATCH_SIZE = 5
 WORKER_THREADS = 4
 MAX_QUEUE_SIZE = 10000
@@ -239,7 +262,7 @@ The system tracks:
 * UDP Sockets
 * SQLite
 * Streamlit
+* FastAPI
 * Multithreading
 
 ---
-

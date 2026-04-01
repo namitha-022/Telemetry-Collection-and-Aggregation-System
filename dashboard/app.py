@@ -1,9 +1,9 @@
 import streamlit as st
-import requests
 import pandas as pd
 import time
 from streamlit_autorefresh import st_autorefresh
-from common.config import SERVER_URL
+from server.models import get_all_metrics
+from server.metrics import get_stats
 
 # ─────────────────────────────────────────────
 # Page Config
@@ -37,15 +37,22 @@ def get_system_status(last_timestamp):
 # Data Fetch
 # ─────────────────────────────────────────────
 try:
-    metrics = requests.get(f"{SERVER_URL}/metrics", timeout=2).json()
-    analysis = requests.get(f"{SERVER_URL}/analysis", timeout=2).json()
-    stats = requests.get(f"{SERVER_URL}/stats", timeout=2).json()
+    metrics = get_all_metrics()
+    stats = get_stats()
 
     if not metrics:
         st.warning("⚠️ No telemetry data available")
         st.stop()
 
     df = pd.DataFrame(metrics)
+
+    # Calculate analysis
+    avg_cpu = sum(d["avg_cpu"] for d in metrics) / len(metrics)
+    max_cpu = max(d["avg_cpu"] for d in metrics)
+    analysis = {
+        "overall_avg_cpu": avg_cpu,
+        "max_cpu": max_cpu
+    }
 
     # ─────────────────────────────────────────────
     # 🔷 TOP KPIs
@@ -156,4 +163,4 @@ try:
     st.line_chart(system_df.set_index("timestamp")[["avg_disk"]])
 
 except Exception as e:
-    st.error(f"❌ Unable to connect to server: {e}")
+    st.error(f"❌ Unable to fetch data: {e}")

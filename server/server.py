@@ -78,15 +78,23 @@ def worker():
 
 
 def start_udp_server():
-    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    sock.bind((SERVER_HOST, SERVER_PORT))
+    try:
+        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        sock.bind((SERVER_HOST, SERVER_PORT))
 
-    logger.info(f"UDP Server running on {SERVER_HOST}:{SERVER_PORT}")
+        logger.info(f"UDP Server running on {SERVER_HOST}:{SERVER_PORT}")
 
-    Thread(target=receiver, args=(sock,), daemon=True).start()
+        Thread(target=receiver, args=(sock,), daemon=True).start()
 
-    for _ in range(WORKER_THREADS):
-        Thread(target=worker, daemon=True).start()
+        for _ in range(WORKER_THREADS):
+            Thread(target=worker, daemon=True).start()
 
-    while True:
-        time.sleep(10)
+        while True:
+            time.sleep(10)
+    except Exception as e:
+        logger.error(f"Failed to start UDP server: {e}")
+        raise
+
+
+if __name__ == "__main__":
+    start_udp_server()

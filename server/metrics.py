@@ -14,10 +14,17 @@ def update_sequence(system_id, seq):
     if system_id in last_seq:
         expected = last_seq[system_id] + 1
         if seq > expected:
+            # Packets were lost
             lost = seq - expected
             packet_loss[system_id] += lost
-
-    last_seq[system_id] = seq
+        elif seq < expected:
+            # Duplicate or out-of-order packet
+            pass
+        # Update last_seq to current seq
+        last_seq[system_id] = seq
+    else:
+        # First packet from this system
+        last_seq[system_id] = seq
 
 
 def get_stats():
