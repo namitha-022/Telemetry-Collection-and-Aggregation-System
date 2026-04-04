@@ -1,24 +1,36 @@
 from server.database import cursor, conn
+from queue import Queue
+from threading import Thread
 
-buffered_inserts = []
-BATCH_SIZE = 10  # NEW
+db_queue = Queue()
+BATCH_SIZE = 10
+
 
 def insert_metric(data):
-    buffered_inserts.append((
-        data['system_id'],
-        data['avg_cpu'],
-        data['avg_memory'],
-        data['avg_disk'],
-        data['timestamp']
-    ))
+    db_queue.put(data)
 
-    if len(buffered_inserts) >= BATCH_SIZE:
-        cursor.executemany(
-            "INSERT INTO metrics (system_id, avg_cpu, avg_memory, avg_disk, timestamp) VALUES (?, ?, ?, ?, ?)",
-            buffered_inserts
-        )
-        conn.commit()
-        buffered_inserts.clear()
+
+def db_worker():
+    buffer = []
+
+    while True:
+        data = db_queue.get()
+
+        buffer.append((
+            data['system_id'],
+            data['avg_cpu'],
+            data['avg_memory'],
+            data['avg_disk'],
+            data['timestamp']
+        ))
+
+        if len(buffer) >= BATCH_SIZE:
+            cursor.executemany(
+                "INSERT INTO metrics (system_id, avg_cpu, avg_memory, avg_disk, timestamp) VALUES (?, ?, ?, ?, ?)",
+                buffer
+            )
+            conn.commit()
+            buffer.clear()
 
 
 def get_all_metrics():

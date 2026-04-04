@@ -28,3 +28,10 @@ def analysis():
 @app.get("/stats")  # 🔥 NEW
 def stats():
     return get_stats()
+
+@app.get("/dashboard")
+def dashboard():
+    return {
+        "metrics": get_all_metrics(),
+        "stats": get_stats()
+    }

@@ -1,5 +1,10 @@
-SERVER_HOST = "0.0.0.0"
+# SERVER SETTINGS
+SERVER_HOST = "0.0.0.0"   # server listens on all interfaces
 SERVER_PORT = 8000
+
+# 👉 IMPORTANT: SET THIS TO YOUR SERVER MACHINE IP
+SERVER_IP_FOR_CLIENTS = "192.168.0.101"
+
 PROTOCOL = "udp"
 
 DB_FILE = "telemetry.db"

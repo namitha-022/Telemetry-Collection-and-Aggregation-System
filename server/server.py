@@ -1,4 +1,4 @@
-from server.models import insert_metric
+from server.models import insert_metric, db_worker
 from server.metrics import update_sequence
 from common.config import (
     SERVER_HOST, SERVER_PORT,
@@ -7,16 +7,30 @@ from common.config import (
 )
 from common.logger import logger
 
+import uvicorn
+from threading import Thread
 import socket
 import json
 import time
 from threading import Thread, Lock
 from queue import Queue
+from collections import defaultdict
+import signal
+import sys
 
 buffers = {}
-lock = Lock()
+locks = defaultdict(Lock)
 queue = Queue(maxsize=MAX_QUEUE_SIZE)
 
+dropped_packets = 0
+
+def start_api():
+    uvicorn.run(
+        "server.api:app",
+        host="0.0.0.0",
+        port=8001,
+        log_level="info"
+    )
 
 def process_data(data):
     required = ["system_id", "seq", "cpu", "memory", "disk", "timestamp"]
@@ -28,7 +42,7 @@ def process_data(data):
 
     update_sequence(system_id, seq)
 
-    with lock:
+    with locks[system_id]:
         if system_id not in buffers:
             buffers[system_id] = []
 
@@ -59,12 +73,16 @@ def process_data(data):
 
 
 def receiver(sock):
+    global dropped_packets
+
     while True:
         try:
-            data, _ = sock.recvfrom(4096)
+            data, addr = sock.recvfrom(4096)
+            logger.info(f"Received from {addr}")
             queue.put_nowait(data)
         except:
-            logger.warning("Queue full → packet dropped")
+            dropped_packets += 1
+            logger.warning(f"Queue full → dropped={dropped_packets}")
 
 
 def worker():
@@ -77,24 +95,32 @@ def worker():
             logger.error(f"Worker error: {e}")
 
 
+def shutdown(sig, frame):
+    logger.info("Shutting down server...")
+    sys.exit(0)
+
+
 def start_udp_server():
-    try:
-        sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        sock.bind((SERVER_HOST, SERVER_PORT))
+    signal.signal(signal.SIGINT, shutdown)
 
-        logger.info(f"UDP Server running on {SERVER_HOST}:{SERVER_PORT}")
+    sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    sock.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, 65536)
 
-        Thread(target=receiver, args=(sock,), daemon=True).start()
+    sock.bind((SERVER_HOST, SERVER_PORT))
+    logger.info(f"UDP Server running on {SERVER_HOST}:{SERVER_PORT}")
 
-        for _ in range(WORKER_THREADS):
-            Thread(target=worker, daemon=True).start()
+    Thread(target=db_worker, daemon=True).start()
+    Thread(target=receiver, args=(sock,), daemon=True).start()
 
-        while True:
-            time.sleep(10)
-    except Exception as e:
-        logger.error(f"Failed to start UDP server: {e}")
-        raise
+    for _ in range(WORKER_THREADS):
+        Thread(target=worker, daemon=True).start()
 
+    while True:
+        time.sleep(10)
 
 if __name__ == "__main__":
+    # 🔥 Start API in background
+    Thread(target=start_api, daemon=True).start()
+
+    # 🔥 Start UDP server
     start_udp_server()

@@ -4,7 +4,7 @@ from common.config import DB_FILE
 conn = sqlite3.connect(DB_FILE, check_same_thread=False)
 cursor = conn.cursor()
 
-cursor.execute("PRAGMA journal_mode=WAL;")  # NEW
+cursor.execute("PRAGMA journal_mode=WAL;")
 
 cursor.execute("""
 CREATE TABLE IF NOT EXISTS metrics (
