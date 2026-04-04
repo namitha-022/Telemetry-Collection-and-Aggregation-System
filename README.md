@@ -1,151 +1,121 @@
 # 📡 Telemetry Collection and Aggregation System
 
-A distributed telemetry system where multiple clients (agents) continuously send system metrics to a centralized server using UDP. The system performs real-time aggregation, packet loss tracking, and performance monitoring.
+A distributed telemetry system where multiple clients (agents)
+continuously send system metrics to a centralized server using UDP. The
+system performs real-time aggregation, packet loss tracking, and
+performance monitoring with a live dashboard.
 
----
+------------------------------------------------------------------------
 
 ## 🚀 Features
 
 ### ✅ Core Capabilities
 
-*  **UDP-based Telemetry Ingestion** (high-throughput, low overhead)
-*  **Per-system Aggregation** (CPU, memory, disk)
-*  **Sequence Tracking** for each client
-*  **Packet Loss Detection**
-*  **Persistent Storage** using SQLite
-*  **Live Dashboard** (Streamlit)
+-   UDP-based telemetry ingestion (high throughput, low overhead)
+-   Real-time system metrics collection (CPU, Memory, Disk)
+-   Sequence tracking for each client
+-   Packet loss detection
+-   Aggregation and summarization
+-   Persistent storage using SQLite
+-   Interactive dashboard using Streamlit
 
----
+------------------------------------------------------------------------
 
 ### ⚡ Performance & Scalability
 
-* Multi-threaded ingestion pipeline
-* Queue-based processing (decoupled ingestion & computation)
-* Batch database writes (optimized performance)
-* Configurable worker threads
+-   Multi-threaded ingestion pipeline
+-   Queue-based processing (decouples ingestion from computation)
+-   Batch database writes
+-   Configurable worker threads
+-   Supports multi-machine deployment over network
 
----
+------------------------------------------------------------------------
 
 ## 🏗️ Architecture
 
-```
-[Agent]
-   ↓ UDP
-[Receiver Thread]
-   ↓
-[Queue]
-   ↓
-[Worker Threads]
-   ↓
-[Aggregation Buffer]
-   ↓
-[Database (SQLite)]
-   ↓
-[Dashboard (Streamlit)]
-```
+    [Agent(s)]
+       ↓ UDP
+    [Receiver Thread]
+       ↓
+    [Queue Buffer]
+       ↓
+    [Worker Threads]
+       ↓
+    [Aggregation Buffer]
+       ↓
+    [Database (SQLite)]
+       ↓
+    [FastAPI Server]
+       ↓ HTTP
+    [Dashboard (Streamlit)]
 
----
+------------------------------------------------------------------------
 
 ## 📂 Project Structure
 
-```
-agent/
-  └── agent.py          # Sends telemetry data
+    agent/        → telemetry sender
+    server/       → ingestion + processing + API
+    dashboard/    → UI (Streamlit)
+    common/       → shared configs & logging
 
-common/
-  ├── config.py         # Configuration
-  └── logger.py         # Logging setup
+------------------------------------------------------------------------
 
-server/
-  ├── server.py         # UDP server + processing
-  ├── api.py            # FastAPI endpoints
-  ├── database.py       # DB connection
-  ├── models.py         # DB operations
-  └── metrics.py        # Packet loss tracking
+## ⚙️ Installation
 
-dashboard/
-  └── app.py            # Streamlit dashboard
-
-requirements.txt
-README.md
-```
-
----
-
-## 📦 Installation
-
-### 1. Clone repository
-
-```bash
-git clone <your-repo-url>
-cd telemetry-system
-```
-
-### 2. Create virtual environment
-
-```bash
+``` bash
 python -m venv venv
-source venv/bin/activate   # Linux/Mac
-venv\Scripts\activate      # Windows
-```
-
-### 3. Install dependencies
-
-```bash
+venv\Scripts\activate   # Windows
 pip install -r requirements.txt
 ```
 
----
+------------------------------------------------------------------------
 
 ## ▶️ Running the System
 
-### 1. Start the server
+### 🖥️ Start Server (UDP + API)
 
-```bash
-python server/server.py
+``` bash
+python -m server.server
 ```
 
-The server will start on UDP port 8000 and listen for telemetry data from agents.
+------------------------------------------------------------------------
 
----
+### 💻 Start Agent(s)
 
-### 2. Start agent(s)
-
-Run one or multiple agents (simulate distributed systems):
-
-```bash
-python agent/agent.py
+``` bash
+python -m agent.agent
 ```
 
-Each agent will send telemetry data every 2 seconds via UDP to the server.
+------------------------------------------------------------------------
 
----
+### 📊 Start Dashboard
 
-### 3. Start the API server (optional)
-
-The API server provides REST endpoints for the dashboard:
-
-```bash
-uvicorn server.api:app --host 0.0.0.0 --port 8001
-```
-
----
-
-### 4. Start dashboard
-
-```bash
+``` bash
 streamlit run dashboard/app.py
 ```
 
-The dashboard will be available at http://localhost:8501
+Open in browser: http://localhost:8501
 
----
+------------------------------------------------------------------------
 
-## 📊 Data Flow
+## 🌐 Multi-PC Setup
 
-Each agent sends:
+Edit `common/config.py`:
 
-```json
+``` python
+SERVER_IP_FOR_CLIENTS = "192.168.X.X"
+```
+
+### Requirements:
+
+-   Same network (LAN)
+-   Firewall allows UDP port 8000
+
+------------------------------------------------------------------------
+
+## 📊 Data Format
+
+``` json
 {
   "system_id": "host123",
   "seq": 10,
@@ -156,113 +126,49 @@ Each agent sends:
 }
 ```
 
----
+------------------------------------------------------------------------
 
 ## 🔍 Key Concepts
 
 ### 🔢 Sequence Tracking
 
-Each packet includes a sequence number:
-
-* Detects missing packets
-* Enables packet loss calculation
-
----
+-   Detects missing packets using sequence numbers
 
 ### ⚠️ Packet Loss Detection
 
-Server tracks:
-
-```
-expected_seq vs received_seq
-```
-
-If mismatch:
-
-```
-loss = received - expected
-```
-
----
+-   Compares expected vs received sequence numbers
 
 ### 📊 Aggregation
 
-Data is buffered per system and aggregated after:
-
-```
-AGGREGATION_BATCH_SIZE (default = 5)
-```
-
-Metrics stored:
-
-* avg_cpu
-* avg_memory
-* avg_disk
-
----
+-   Data buffered and averaged over batch size
 
 ### ⚡ High-Rate Processing
 
-* UDP ingestion (non-blocking)
-* Queue-based buffering
-* Worker thread pool
+-   UDP ingestion + queue + worker threads
 
----
+------------------------------------------------------------------------
 
-## ⚙️ Configuration
+## 📈 Metrics Tracked
 
-Modify in [`common/config.py`](common/config.py:1):
+-   CPU / Memory / Disk usage
+-   Packet loss per system
+-   Throughput (packets/sec)
 
-```python
-SERVER_HOST = "0.0.0.0"
-SERVER_PORT = 8000
-PROTOCOL = "udp"
-SERVER_URL = "http://localhost:8000"
+------------------------------------------------------------------------
 
-DB_FILE = "telemetry.db"
+## 🎯 Conclusion
 
-AGGREGATION_BATCH_SIZE = 5
-WORKER_THREADS = 4
-MAX_QUEUE_SIZE = 10000
-MAX_BUFFER_SIZE = 1000
-```
+This project demonstrates a complete telemetry pipeline including: -
+Distributed data collection - High-throughput ingestion - Real-time
+aggregation - Network reliability analysis - Live visualization
 
----
-
-## 📈 Performance Metrics
-
-The system tracks:
-
-* Total packets received
-* Packet loss per system
-* Aggregation events
-
----
-
-## ⚠️ Limitations
-
-* UDP is unreliable (intentional for this system)
-* SQLite is not ideal for high-scale production
-* No authentication or encryption
-
----
-
-## 🎯 Use Cases
-
-* Distributed system monitoring
-* Performance testing environments
-* Network telemetry pipelines
-* Observability system prototypes
-
----
+------------------------------------------------------------------------
 
 ## 👨‍💻 Tech Stack
 
-* Python
-* UDP Sockets
-* SQLite
-* Streamlit
-* FastAPI
-* Multithreading
-
----
+-   Python
+-   UDP Sockets
+-   FastAPI
+-   SQLite
+-   Streamlit
+-   Multithreading
