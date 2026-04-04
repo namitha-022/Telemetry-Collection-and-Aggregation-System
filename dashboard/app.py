@@ -2,6 +2,8 @@ import streamlit as st
 import pandas as pd
 import requests
 import time
+import plotly.express as px
+from streamlit_autorefresh import st_autorefresh
 
 # ─────────────────────────────────────────────
 # CONFIG
@@ -14,6 +16,45 @@ st.set_page_config(
     page_icon="📡"
 )
 
+# Auto refresh (smooth)
+st_autorefresh(interval=2000, key="refresh")
+
+# ─────────────────────────────────────────────
+# 🎨 CUSTOM UI (PROFESSIONAL STYLE)
+# ─────────────────────────────────────────────
+st.markdown("""
+<style>
+/* Background */
+body {
+    background-color: #0E1117;
+}
+
+/* KPI Cards */
+div[data-testid="stMetric"] {
+    background-color: #1A1F2B;
+    padding: 18px;
+    border-radius: 12px;
+    border: 1px solid #2A2F3A;
+}
+
+/* Section spacing */
+.block-container {
+    padding-top: 2rem;
+}
+
+/* Headings */
+h1, h2, h3 {
+    font-weight: 700;
+}
+
+/* Dataframe */
+[data-testid="stDataFrame"] {
+    border-radius: 10px;
+    overflow: hidden;
+}
+</style>
+""", unsafe_allow_html=True)
+
 st.title("📡 Telemetry Monitoring Dashboard")
 st.caption("Real-time system metrics • Network health • Performance analytics")
 
@@ -21,140 +62,150 @@ st.caption("Real-time system metrics • Network health • Performance analytic
 # HELPERS
 # ─────────────────────────────────────────────
 def get_status(value):
-    if value >= 80:
-        return "🔴 Critical"
-    elif value >= 60:
-        return "🟡 Warning"
-    return "🟢 Healthy"
+    try:
+        value = float(value)
+        if value >= 80:
+            return "🔴 Critical"
+        elif value >= 60:
+            return "🟡 Warning"
+        return "🟢 Healthy"
+    except:
+        return "⚪ Unknown"
 
 
 def get_system_status(ts):
-    return "🟢 Online" if (time.time() - ts) < 5 else "🔴 Offline"
+    try:
+        ts = float(ts)
+        return "🟢 Online" if (time.time() - ts) < 5 else "🔴 Offline"
+    except:
+        return "⚪ Unknown"
 
 
+@st.cache_data(ttl=2)
 def fetch_data():
     try:
         res = requests.get(f"{API_BASE}/dashboard", timeout=2)
+        res.raise_for_status()
         return res.json()
-    except:
+    except requests.exceptions.RequestException:
         return {"metrics": [], "stats": {}}
 
 
 # ─────────────────────────────────────────────
-# PLACEHOLDERS (NO FULL RERENDER)
+# DATA
 # ─────────────────────────────────────────────
-kpi_section = st.empty()
-network_section = st.empty()
-table_section = st.empty()
-details_section = st.empty()
+data = fetch_data()
+metrics = data.get("metrics", [])
+stats = data.get("stats", {})
+
+if not metrics:
+    st.warning("⏳ Waiting for telemetry data...")
+    st.stop()
+
+df = pd.DataFrame(metrics)
+
+required_cols = ["system_id", "avg_cpu", "avg_memory", "avg_disk", "timestamp"]
+if not all(col in df.columns for col in required_cols):
+    st.error("Invalid API response")
+    st.stop()
+
+df = df.sort_values("timestamp")
 
 # ─────────────────────────────────────────────
-# LIVE LOOP (SMOOTH UI)
+# 📊 KPI SECTION (CARDS)
 # ─────────────────────────────────────────────
-while True:
-    data = fetch_data()
-    metrics = data.get("metrics", [])
-    stats = data.get("stats", {})
+st.markdown("## 📊 System Overview")
 
-    if not metrics:
-        with kpi_section.container():
-            st.warning("⏳ Waiting for telemetry data...")
-        time.sleep(2)
-        continue
+col1, col2, col3, col4 = st.columns(4)
 
-    df = pd.DataFrame(metrics)
+col1.metric("Active Systems", df["system_id"].nunique())
+col2.metric("Avg CPU", f"{df['avg_cpu'].mean():.2f}%")
+col3.metric("Max CPU", f"{df['avg_cpu'].max():.2f}%")
+col4.metric("Total Records", len(df))
 
-    # ───────── KPI SECTION ─────────
-    with kpi_section.container():
-        st.markdown("## 📊 System Overview")
+# ─────────────────────────────────────────────
+# 🌐 NETWORK
+# ─────────────────────────────────────────────
+st.markdown("## 🌐 Network Health")
 
-        col1, col2, col3, col4 = st.columns(4)
+c1, c2, c3 = st.columns(3)
 
-        col1.metric("Active Systems", df["system_id"].nunique())
-        col2.metric("Avg CPU", f"{df['avg_cpu'].mean():.2f}%")
-        col3.metric("Max CPU", f"{df['avg_cpu'].max():.2f}%")
-        col4.metric("Total Records", len(df))
+c1.metric("Packets", f"{stats.get('total_received', 0):,}")
+c2.metric("Throughput", f"{stats.get('throughput', 0):.2f} pkt/s")
+c3.metric("Loss", f"{stats.get('packet_loss_percent', 0):.2f}%")
 
-    # ───────── NETWORK SECTION ─────────
-    with network_section.container():
-        st.markdown("## 🌐 Network Health")
+# ─────────────────────────────────────────────
+# 🖥️ SYSTEM TABLE
+# ─────────────────────────────────────────────
+st.markdown("## 🖥️ Systems Overview")
 
-        c1, c2, c3 = st.columns(3)
+latest = (
+    df.groupby("system_id")
+    .tail(1)
+    .sort_values("avg_cpu", ascending=False)
+)
 
-        c1.metric("Packets Received", f"{stats.get('total_received', 0):,}")
-        c2.metric("Throughput", f"{stats.get('throughput', 0):.2f} pkt/s")
-        c3.metric("Packet Loss", f"{stats.get('packet_loss_percent', 0):.2f}%")
+latest["Status"] = latest["timestamp"].apply(get_system_status)
+latest["Health"] = latest["avg_cpu"].apply(get_status)
 
-        if stats.get("packet_loss"):
-            st.markdown("### 📉 Packet Loss by System")
+table = latest[
+    ["system_id", "Status", "avg_cpu", "avg_memory", "avg_disk", "Health"]
+].copy()
 
-            loss_df = pd.DataFrame(
-                list(stats["packet_loss"].items()),
-                columns=["System", "Packets Lost"]
-            ).sort_values("Packets Lost", ascending=False)
+table.columns = ["System", "Status", "CPU", "Memory", "Disk", "Health"]
 
-            st.dataframe(loss_df, use_container_width=True)
+st.dataframe(table, use_container_width=True)
 
-    # ───────── SYSTEM TABLE ─────────
-    with table_section.container():
-        st.markdown("## 🖥️ Systems Overview")
+# ─────────────────────────────────────────────
+# 🔍 DETAILS (STATE SAFE)
+# ─────────────────────────────────────────────
+st.markdown("## 🔍 System Details")
 
-        latest = (
-            df.sort_values("timestamp")
-            .groupby("system_id")
-            .tail(1)
-            .sort_values("avg_cpu", ascending=False)
-        )
+systems = sorted(df["system_id"].unique())
 
-        latest["Status"] = latest["timestamp"].apply(get_system_status)
-        latest["Health"] = latest["avg_cpu"].apply(get_status)
+if "selected_system" not in st.session_state:
+    st.session_state.selected_system = systems[0]
 
-        table = latest[[
-            "system_id", "Status", "avg_cpu", "avg_memory", "avg_disk", "Health"
-        ]]
+selected = st.selectbox(
+    "Select System",
+    systems,
+    index=systems.index(st.session_state.selected_system)
+)
 
-        table.columns = [
-            "System", "Status", "CPU (%)", "Memory (%)", "Disk (%)", "Health"
-        ]
+st.session_state.selected_system = selected
 
-        st.dataframe(table, use_container_width=True)
+system_df = df[df["system_id"] == selected]
 
-    # ───────── DETAILS ─────────
-    with details_section.container():
-        st.markdown("## 🔍 System Details")
+if system_df.empty:
+    st.warning("No data available")
+    st.stop()
 
-        if "selected_system" not in st.session_state:
-            st.session_state.selected_system = df["system_id"].unique()[0]
+latest_row = system_df.iloc[-1]
+status = get_system_status(latest_row["timestamp"])
 
-        selected = st.selectbox(
-            "Select System",
-            df["system_id"].unique(),
-            key="system_selector"
-        )
+st.markdown(f"### {selected} — {status}")
 
-        st.session_state.selected_system = selected
+m1, m2, m3 = st.columns(3)
 
-        system_df = df[df["system_id"] == selected]
-        latest_row = system_df.iloc[-1]
+m1.metric("CPU", f"{latest_row['avg_cpu']:.1f}%", get_status(latest_row["avg_cpu"]))
+m2.metric("Memory", f"{latest_row['avg_memory']:.1f}%", get_status(latest_row["avg_memory"]))
+m3.metric("Disk", f"{latest_row['avg_disk']:.1f}%", get_status(latest_row["avg_disk"]))
 
-        status = get_system_status(latest_row["timestamp"])
+# ─────────────────────────────────────────────
+# 📈 MODERN CHART
+# ─────────────────────────────────────────────
+st.markdown("### 📈 Performance Trends")
 
-        st.markdown(f"### {selected} — {status}")
+fig = px.line(
+    system_df,
+    x="timestamp",
+    y=["avg_cpu", "avg_memory", "avg_disk"],
+    template="plotly_dark"
+)
 
-        m1, m2, m3 = st.columns(3)
+fig.update_layout(
+    legend_title_text='Metrics',
+    hovermode="x unified"
+)
 
-        m1.metric("CPU Usage", f"{latest_row['avg_cpu']:.1f}%", get_status(latest_row["avg_cpu"]))
-        m2.metric("Memory Usage", f"{latest_row['avg_memory']:.1f}%", get_status(latest_row["avg_memory"]))
-        m3.metric("Disk Usage", f"{latest_row['avg_disk']:.1f}%", get_status(latest_row["avg_disk"]))
-
-        st.markdown("### 📈 Trends")
-
-        if len(system_df) > 1:
-            st.line_chart(system_df.set_index("timestamp")[["avg_cpu"]])
-            st.line_chart(system_df.set_index("timestamp")[["avg_memory"]])
-            st.line_chart(system_df.set_index("timestamp")[["avg_disk"]])
-        else:
-            st.info("📊 Not enough data for trends")
-
-    # 🔥 smooth refresh without flicker
-    time.sleep(2)
+st.plotly_chart(fig, use_container_width=True)
