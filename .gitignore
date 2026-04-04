@@ -10,6 +10,8 @@ __pycache__/
 
 # Database files
 *.db
+*.db-shm
+*.db-wal
 
 # VS Code
 .vscode/
