@@ -53,10 +53,33 @@ performance monitoring with a live dashboard.
 
 ## 📂 Project Structure
 
-    agent/        → telemetry sender
-    server/       → ingestion + processing + API
-    dashboard/    → UI (Streamlit)
-    common/       → shared configs & logging
+```
+Telemetry-Collection-and-Aggregation-System
+├── agent/                     → Telemetry sender (UDP client)
+│   ├── __pycache__/
+│   └── agent.py
+│
+├── server/                    → Ingestion + processing + API
+│   ├── __pycache__/
+│   ├── __init__.py
+│   ├── server.py              → UDP server + pipeline orchestration
+│   ├── api.py                 → FastAPI endpoints
+│   ├── database.py            → SQLite setup
+│   ├── models.py              → DB operations (insert/query)
+│   └── metrics.py             → Packet tracking & stats
+│
+├── dashboard/                 → UI (Streamlit)
+│   └── app.py
+│
+├── common/                    → Shared configs & logging
+│   ├── __pycache__/
+│   ├── config.py              → Global configuration
+│   └── logger.py              → Logging setup
+│
+├── .gitignore
+├── README.md
+└── requirements.txt
+```
 
 ------------------------------------------------------------------------
 
