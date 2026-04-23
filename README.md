@@ -1,4 +1,4 @@
-# 📡 Telemetry Collection and Aggregation System
+#  Telemetry Collection and Aggregation System
 
 A distributed telemetry system where multiple clients (agents)
 continuously send system metrics to a centralized server using UDP. The
@@ -9,7 +9,7 @@ performance monitoring with a live dashboard.
 
 ## 🚀 Features
 
-### ✅ Core Capabilities
+###  Core Capabilities
 
 -   UDP-based telemetry ingestion (high throughput, low overhead)
 -   Real-time system metrics collection (CPU, Memory, Disk)
@@ -21,7 +21,7 @@ performance monitoring with a live dashboard.
 
 ------------------------------------------------------------------------
 
-### ⚡ Performance & Scalability
+###  Performance & Scalability
 
 -   Multi-threaded ingestion pipeline
 -   Queue-based processing (decouples ingestion from computation)
@@ -31,7 +31,7 @@ performance monitoring with a live dashboard.
 
 ------------------------------------------------------------------------
 
-## 🏗️ Architecture
+##  Architecture
 
     [Agent(s)]
        ↓ UDP
@@ -83,7 +83,7 @@ Telemetry-Collection-and-Aggregation-System
 
 ------------------------------------------------------------------------
 
-## ⚙️ Installation
+##  Installation
 
 ``` bash
 python -m venv venv
@@ -93,9 +93,9 @@ pip install -r requirements.txt
 
 ------------------------------------------------------------------------
 
-## ▶️ Running the System
+##  Running the System
 
-### 🖥️ Start Server (UDP + API)
+###  Start Server (UDP + API) (Terminal 1)
 
 ``` bash
 python -m server.server
@@ -103,7 +103,7 @@ python -m server.server
 
 ------------------------------------------------------------------------
 
-### 💻 Start Agent(s)
+###  Start Agent(s) (Terminal 2)
 
 ``` bash
 python -m agent.agent
@@ -111,7 +111,7 @@ python -m agent.agent
 
 ------------------------------------------------------------------------
 
-### 📊 Start Dashboard
+###  Start Dashboard (Terminal 3)
 
 ``` bash
 streamlit run dashboard/app.py
@@ -121,7 +121,7 @@ Open in browser: http://localhost:8501
 
 ------------------------------------------------------------------------
 
-## 🌐 Multi-PC Setup
+##  Multi-PC Setup
 
 Edit `common/config.py`:
 
@@ -136,7 +136,7 @@ SERVER_IP_FOR_CLIENTS = "192.168.X.X"
 
 ------------------------------------------------------------------------
 
-## 📊 Data Format
+##  Data Format
 
 ``` json
 {
@@ -153,25 +153,25 @@ SERVER_IP_FOR_CLIENTS = "192.168.X.X"
 
 ## 🔍 Key Concepts
 
-### 🔢 Sequence Tracking
+###  Sequence Tracking
 
 -   Detects missing packets using sequence numbers
 
-### ⚠️ Packet Loss Detection
+###  Packet Loss Detection
 
 -   Compares expected vs received sequence numbers
 
-### 📊 Aggregation
+###  Aggregation
 
 -   Data buffered and averaged over batch size
 
-### ⚡ High-Rate Processing
+###  High-Rate Processing
 
 -   UDP ingestion + queue + worker threads
 
 ------------------------------------------------------------------------
 
-## 📈 Metrics Tracked
+##  Metrics Tracked
 
 -   CPU / Memory / Disk usage
 -   Packet loss per system
@@ -179,7 +179,7 @@ SERVER_IP_FOR_CLIENTS = "192.168.X.X"
 
 ------------------------------------------------------------------------
 
-## 🎯 Conclusion
+##  Conclusion
 
 This project demonstrates a complete telemetry pipeline including: -
 Distributed data collection - High-throughput ingestion - Real-time
@@ -187,7 +187,7 @@ aggregation - Network reliability analysis - Live visualization
 
 ------------------------------------------------------------------------
 
-## 👨‍💻 Tech Stack
+##  Tech Stack
 
 -   Python
 -   UDP Sockets
